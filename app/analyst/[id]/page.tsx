@@ -22,6 +22,11 @@ interface PredictionWithPrice extends Prediction {
   end_price?: number;
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 // TradingView Chart Component
 function TradingViewChart({ prediction }: { prediction: PredictionWithPrice }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,6 +97,12 @@ export default function AnalystDashboard({
   );
   const [selectedPrediction, setSelectedPrediction] =
     useState<PredictionWithPrice | null>(null);
+  const [showEarningsModal, setShowEarningsModal] = useState(false);
+  const [allEarningsComments, setAllEarningsComments] = useState<EarningsQuestion[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [predictionsPage, setPredictionsPage] = useState(0);
   const [earningsPage, setEarningsPage] = useState(0);
@@ -116,6 +127,87 @@ export default function AnalystDashboard({
   useEffect(() => {
     fetchAnalystInsights();
   }, [unwrappedParams.id]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  const fetchAllEarningsComments = async () => {
+    const analystId = parseInt(unwrappedParams.id);
+    const { data: earningsData } = await supabase
+      .from('earnings_questions')
+      .select('*')
+      .eq('analyst_id', analystId)
+      .order('mostimportantdateutc', { ascending: false });
+
+    if (earningsData) {
+      setAllEarningsComments(earningsData);
+    }
+  };
+
+  const handleOpenEarningsModal = async () => {
+    setShowEarningsModal(true);
+    setChatMessages([]);
+    setInputMessage('');
+    await fetchAllEarningsComments();
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || chatLoading) return;
+
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: inputMessage,
+    };
+
+    setChatMessages((prev) => [...prev, userMessage]);
+    setInputMessage('');
+    setChatLoading(true);
+
+    try {
+      const context = allEarningsComments
+        .map((comment) => {
+          const date = comment.mostimportantdateutc
+            ? new Date(comment.mostimportantdateutc).toLocaleDateString()
+            : 'Unknown date';
+          return `[${date} - ${comment.ticker}]\n${comment.componenttextpreview}\n`;
+        })
+        .join('\n---\n\n');
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...chatMessages, userMessage],
+          context,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: data.message,
+      };
+
+      setChatMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please make sure your OpenAI API key is configured.',
+      };
+      setChatMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   const fetchAnalystData = async () => {
     setLoading(true);
@@ -766,10 +858,10 @@ export default function AnalystDashboard({
                   </div>
                   <div className="space-y-2 overflow-y-auto flex-1">
                     {earningsComments.map((comment) => (
-                      <Link
+                      <button
                         key={comment.question_id}
-                        href={`/analyst/${unwrappedParams.id}/earnings`}
-                        className="block p-3 bg-gray-50 hover:bg-indigo-50 rounded-lg transition-colors border border-gray-200 hover:border-indigo-300"
+                        onClick={handleOpenEarningsModal}
+                        className="block w-full text-left p-3 bg-gray-50 hover:bg-indigo-50 rounded-lg transition-colors border border-gray-200 hover:border-indigo-300"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <span className="font-bold text-gray-800">
@@ -791,7 +883,7 @@ export default function AnalystDashboard({
                             {comment.word_count} words
                           </p>
                         )}
-                      </Link>
+                      </button>
                     ))}
                   </div>
 
@@ -947,6 +1039,168 @@ export default function AnalystDashboard({
               {/* TradingView Widget */}
               <div className="w-full h-96 bg-gray-100 rounded-lg overflow-hidden">
                 <TradingViewChart prediction={selectedPrediction} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Earnings Call Comments Modal */}
+      {showEarningsModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowEarningsModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-2xl max-w-7xl w-full h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 flex-shrink-0">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {analyst?.full_name} - Earnings Call Commentary
+                  </h2>
+                  <p className="text-gray-600 text-sm mt-1">
+                    {allEarningsComments.length} total comments
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowEarningsModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content - Two column layout */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 min-h-0 overflow-hidden">
+              {/* Left Side - Scrollable Comments List */}
+              <div className="bg-gray-50 rounded-lg p-4 overflow-y-auto">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 sticky top-0 bg-gray-50 pb-2">
+                  All Comments ({allEarningsComments.length})
+                </h3>
+
+                {allEarningsComments.length > 0 ? (
+                  <div className="space-y-3">
+                    {allEarningsComments.map((comment) => (
+                      <div
+                        key={comment.question_id}
+                        className="p-3 bg-white rounded-lg border border-gray-200"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-semibold text-indigo-600 text-sm">
+                            {comment.ticker}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {comment.mostimportantdateutc
+                              ? new Date(comment.mostimportantdateutc).toLocaleDateString()
+                              : 'N/A'}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 text-xs whitespace-pre-wrap">
+                          {comment.componenttextpreview}
+                        </p>
+                        {comment.word_count && (
+                          <p className="text-xs text-gray-400 mt-2">{comment.word_count} words</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No earnings call comments available</p>
+                )}
+              </div>
+
+              {/* Right Side - Chatbot */}
+              <div className="bg-gray-50 rounded-lg flex flex-col overflow-hidden">
+                <div className="p-4 border-b border-gray-200 flex-shrink-0">
+                  <h3 className="text-lg font-semibold text-gray-800">AI Insights Assistant</h3>
+                  <p className="text-gray-600 text-xs mt-1">
+                    Ask me anything about {analyst?.full_name}'s earnings call commentary
+                  </p>
+                </div>
+
+                {/* Chat Messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                  {chatMessages.length === 0 && (
+                    <div className="text-center text-gray-500 py-8">
+                      <p className="mb-3 text-sm">Start by asking a question, for example:</p>
+                      <div className="space-y-2 text-xs">
+                        <p className="italic">"What companies does this analyst focus on?"</p>
+                        <p className="italic">"What are their main concerns about tech stocks?"</p>
+                        <p className="italic">"Summarize their recent commentary on AAPL"</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {chatMessages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 ${
+                          message.role === 'user'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white text-gray-800 border border-gray-200'
+                        }`}
+                      >
+                        <p className="text-xs whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {chatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-white rounded-lg p-3 border border-gray-200">
+                        <div className="flex gap-2">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Chat Input */}
+                <div className="p-4 border-t border-gray-200 flex-shrink-0">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                      placeholder="Ask a question about the analyst's commentary..."
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 text-gray-900 bg-white"
+                      disabled={chatLoading}
+                    />
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={chatLoading || !inputMessage.trim()}
+                      className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
