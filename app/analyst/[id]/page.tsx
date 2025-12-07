@@ -210,44 +210,44 @@ export default function AnalystDashboard({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 py-6 px-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="bg-white border-b border-gray-200 py-3 px-8">
+        <div className="max-w-[1800px] mx-auto">
           <Link
             href="/"
-            className="text-indigo-600 hover:text-indigo-800 mb-2 inline-block"
+            className="text-indigo-600 hover:text-indigo-800 mb-1 inline-block text-sm"
           >
             ← Back to search
           </Link>
-          <h1 className="text-4xl font-bold text-gray-800">
+          <h1 className="text-2xl font-bold text-gray-800">
             {analyst.full_name}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 text-sm">
             {analyst.first_initial_last_name}
           </p>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-[1800px] mx-auto p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Profile Box */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-8">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+            <div className="bg-white rounded-lg shadow-lg p-4 h-[calc(100vh-140px)] flex flex-col">
+              <h2 className="text-xl font-semibold text-gray-800 mb-3">
                 Profile
               </h2>
 
               {linkedInInfo ? (
-                <div className="space-y-4">
+                <div className="flex-1 overflow-y-auto space-y-3">
                   {linkedInInfo.Linkedin && (
                     <a
                       href={linkedInInfo.Linkedin}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium"
+                      className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium text-sm"
                     >
                       <svg
-                        className="w-5 h-5"
+                        className="w-4 h-4"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
@@ -257,54 +257,113 @@ export default function AnalystDashboard({
                     </a>
                   )}
 
-                  {linkedInInfo.about && (
-                    <div>
-                      <h3 className="font-semibold text-gray-700 mb-2">
-                        About
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        {linkedInInfo.about}
-                      </p>
-                    </div>
-                  )}
-
-                  {linkedInInfo.educations_details && (
-                    <div>
-                      <h3 className="font-semibold text-gray-700 mb-2">
-                        Education
-                      </h3>
-                      <p className="text-gray-600 text-sm whitespace-pre-wrap">
-                        {linkedInInfo.educations_details}
-                      </p>
-                    </div>
-                  )}
-
                   {linkedInInfo.current_company_name && (
                     <div>
-                      <h3 className="font-semibold text-gray-700 mb-2">
+                      <h3 className="font-semibold text-gray-700 mb-1 text-sm">
                         Current Company
                       </h3>
-                      <p className="text-gray-600 text-sm">
+                      <p className="text-gray-600 text-xs">
                         {linkedInInfo.current_company_name}
                       </p>
                     </div>
                   )}
 
-                  <div className="flex gap-4 pt-4 border-t border-gray-200">
+                  {linkedInInfo.about && (
+                    <div>
+                      <h3 className="font-semibold text-gray-700 mb-1 text-sm">
+                        About
+                      </h3>
+                      <p className="text-gray-600 text-xs leading-relaxed">
+                        {linkedInInfo.about}
+                      </p>
+                    </div>
+                  )}
+
+                  {linkedInInfo.experience && (() => {
+                    try {
+                      const experiences = JSON.parse(linkedInInfo.experience);
+                      if (Array.isArray(experiences) && experiences.length > 0) {
+                        // Filter out entries without title or company (they appear to be incomplete)
+                        const validExperiences = experiences.filter(
+                          (exp: any) => exp.title || exp.company
+                        );
+
+                        if (validExperiences.length === 0) return null;
+
+                        return (
+                          <div>
+                            <h3 className="font-semibold text-gray-700 mb-2 text-sm">
+                              Experience
+                            </h3>
+                            <div className="space-y-3">
+                              {validExperiences.slice(0, 5).map((exp: any, idx: number) => (
+                                <div key={idx} className="border-l-2 border-indigo-200 pl-3">
+                                  <div className="flex items-start gap-2">
+                                    {exp.company_logo_url && (
+                                      <img
+                                        src={exp.company_logo_url}
+                                        alt={exp.company || exp.title || 'Company logo'}
+                                        className="w-8 h-8 rounded flex-shrink-0"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                      />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      {exp.title && (
+                                        <p className="font-medium text-gray-800 text-xs">
+                                          {exp.title}
+                                        </p>
+                                      )}
+                                      {exp.company && (
+                                        <p className="text-gray-600 text-xs">
+                                          {exp.company}
+                                        </p>
+                                      )}
+                                      {exp.duration && (
+                                        <p className="text-gray-500 text-xs">
+                                          {exp.duration}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+                    } catch (e) {
+                      return null;
+                    }
+                  })()}
+
+                  {linkedInInfo.educations_details && (
+                    <div>
+                      <h3 className="font-semibold text-gray-700 mb-1 text-sm">
+                        Education
+                      </h3>
+                      <p className="text-gray-600 text-xs whitespace-pre-wrap">
+                        {linkedInInfo.educations_details}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 pt-3 border-t border-gray-200">
                     {linkedInInfo.followers !== null && (
                       <div>
-                        <p className="text-2xl font-bold text-gray-800">
+                        <p className="text-xl font-bold text-gray-800">
                           {linkedInInfo.followers?.toLocaleString()}
                         </p>
-                        <p className="text-sm text-gray-600">Followers</p>
+                        <p className="text-xs text-gray-600">Followers</p>
                       </div>
                     )}
                     {linkedInInfo.connections !== null && (
                       <div>
-                        <p className="text-2xl font-bold text-gray-800">
+                        <p className="text-xl font-bold text-gray-800">
                           {linkedInInfo.connections?.toLocaleString()}
                         </p>
-                        <p className="text-sm text-gray-600">Connections</p>
+                        <p className="text-xs text-gray-600">Connections</p>
                       </div>
                     )}
                   </div>
@@ -317,156 +376,146 @@ export default function AnalystDashboard({
             </div>
           </div>
 
-          {/* Predictions and Earnings Comments */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Predictions List */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+          {/* Predictions List */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-lg p-4 h-[calc(100vh-140px)] flex flex-col">
+              <h2 className="text-xl font-semibold text-gray-800 mb-3">
                 Predictions
               </h2>
 
               {predictions.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <div className="flex justify-between items-center mb-3">
-                    <p className="text-sm text-gray-500">
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs text-gray-500">
                       Showing {predictionsPage * ITEMS_PER_PAGE + 1}-
                       {Math.min(
                         (predictionsPage + 1) * ITEMS_PER_PAGE,
                         totalPredictions
                       )}{" "}
-                      of {totalPredictions} predictions
+                      of {totalPredictions}
                     </p>
                   </div>
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                          Date
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                          Ticker
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                          Timeframe
-                        </th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
-                          Start Price
-                        </th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
-                          Target
-                        </th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
-                          End Price
-                        </th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
-                          Actual Return
-                        </th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
-                          Accuracy of Prediction
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {predictions.map((pred) => {
-                        const returnPct =
-                          pred.start_price && pred.end_price
+                  <div className="space-y-2 overflow-y-auto flex-1">
+                    {predictions.map((pred) => {
+                      // Calculate return based on prediction direction
+                      // If target > start (bullish), use (end - start) / start
+                      // If target < start (bearish), use (start - end) / start
+                      const returnPct =
+                        pred.start_price && pred.end_price && pred.value
+                          ? pred.value > pred.start_price
                             ? ((pred.end_price - pred.start_price) /
                                 pred.start_price) *
                               100
-                            : null;
-                        const targetReturnPct =
-                          pred.start_price && pred.value
-                            ? ((pred.value - pred.start_price) /
+                            : ((pred.start_price - pred.end_price) /
                                 pred.start_price) *
                               100
-                            : null;
+                          : null;
 
-                        // Calculate accuracy: difference between end price and target price
-                        const accuracyPct =
-                          pred.end_price && pred.value
-                            ? ((pred.end_price - pred.value) / pred.value) * 100
-                            : null;
+                      // Calculate accuracy: difference between end price and target price
+                      const accuracyPct =
+                        pred.end_price && pred.value
+                          ? ((pred.end_price - pred.value) / pred.value) * 100
+                          : null;
 
-                        return (
-                          <tr
-                            key={pred.prediction_id}
-                            onClick={() => setSelectedPrediction(pred)}
-                            className="border-b border-gray-100 hover:bg-indigo-50 cursor-pointer transition-colors"
-                          >
-                            <td className="py-3 px-4 text-sm text-gray-800">
+                      return (
+                        <div
+                          key={pred.prediction_id}
+                          onClick={() => setSelectedPrediction(pred)}
+                          className="p-3 bg-gray-50 hover:bg-indigo-50 rounded-lg cursor-pointer transition-colors border border-gray-200 hover:border-indigo-300"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-bold text-gray-800">
+                              {pred.ticker}
+                            </span>
+                            <span className="text-xs text-gray-500">
                               {pred.anndats
                                 ? new Date(pred.anndats).toLocaleDateString()
                                 : "N/A"}
-                            </td>
-                            <td className="py-3 px-4 text-sm font-medium text-gray-800">
-                              {pred.ticker}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-600">
-                              {pred.horizon ? `${pred.horizon} months` : "N/A"}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-right text-gray-800">
-                              {pred.start_price
-                                ? `$${pred.start_price.toFixed(2)}`
-                                : "N/A"}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-right font-medium text-gray-800">
-                              ${pred.value.toFixed(2)}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-right text-gray-800">
-                              {pred.end_price
-                                ? `$${pred.end_price.toFixed(2)}`
-                                : "N/A"}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-right">
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                            <div>
+                              <span className="text-gray-500">Start:</span>
+                              <span className="ml-1 text-gray-800">
+                                {pred.start_price
+                                  ? `$${pred.start_price.toFixed(2)}`
+                                  : "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Target:</span>
+                              <span className="ml-1 font-medium text-gray-800">
+                                ${pred.value.toFixed(2)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">End:</span>
+                              <span className="ml-1 text-gray-800">
+                                {pred.end_price
+                                  ? `$${pred.end_price.toFixed(2)}`
+                                  : "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Period:</span>
+                              <span className="ml-1 text-gray-800">
+                                {pred.horizon ? `${pred.horizon}mo` : "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+                            <div>
+                              <span className="text-xs text-gray-500">Return:</span>
                               {returnPct !== null ? (
                                 <span
-                                  className={
+                                  className={`ml-1 text-sm font-medium ${
                                     returnPct >= 0
-                                      ? "text-green-600 font-medium"
-                                      : "text-red-600 font-medium"
-                                  }
+                                      ? "text-green-600"
+                                      : "text-red-600"
+                                  }`}
                                 >
                                   {returnPct >= 0 ? "+" : ""}
                                   {returnPct.toFixed(1)}%
                                 </span>
                               ) : (
-                                <span className="text-gray-400">N/A</span>
+                                <span className="ml-1 text-xs text-gray-400">N/A</span>
                               )}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-right">
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-500">Accuracy:</span>
                               {accuracyPct !== null ? (
                                 <span
-                                  className={
+                                  className={`ml-1 text-sm font-medium ${
                                     Math.abs(accuracyPct) <= 10
-                                      ? "text-green-600 font-medium"
-                                      : "text-orange-600 font-medium"
-                                  }
+                                      ? "text-green-600"
+                                      : "text-orange-600"
+                                  }`}
                                 >
                                   {accuracyPct >= 0 ? "+" : ""}
                                   {accuracyPct.toFixed(1)}%
                                 </span>
                               ) : (
-                                <span className="text-gray-400">N/A</span>
+                                <span className="ml-1 text-xs text-gray-400">N/A</span>
                               )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
 
                   {/* Pagination Controls */}
-                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 flex-shrink-0">
                     <button
                       onClick={() =>
                         setPredictionsPage(Math.max(0, predictionsPage - 1))
                       }
                       disabled={predictionsPage === 0}
-                      className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:cursor-not-allowed"
                     >
                       ← Previous
                     </button>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xs text-gray-600">
                       Page {predictionsPage + 1} of{" "}
                       {Math.ceil(totalPredictions / ITEMS_PER_PAGE)}
                     </span>
@@ -476,7 +525,7 @@ export default function AnalystDashboard({
                         (predictionsPage + 1) * ITEMS_PER_PAGE >=
                         totalPredictions
                       }
-                      className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:cursor-not-allowed"
                     >
                       Next →
                     </button>
@@ -489,39 +538,39 @@ export default function AnalystDashboard({
                 </p>
               )}
             </div>
+          </div>
 
-            {/* Earnings Call Comments */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-semibold text-gray-800">
-                  Earnings Call Comments
-                </h2>
-                {totalEarnings > 0 && (
-                  <p className="text-sm text-gray-500">
-                    Showing {earningsPage * ITEMS_PER_PAGE + 1}-
-                    {Math.min(
-                      (earningsPage + 1) * ITEMS_PER_PAGE,
-                      totalEarnings
-                    )}{" "}
-                    of {totalEarnings}
-                  </p>
-                )}
-              </div>
+          {/* Earnings Call Comments */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-lg p-4 h-[calc(100vh-140px)] flex flex-col">
+              <h2 className="text-xl font-semibold text-gray-800 mb-3">
+                Earnings Call Comments
+              </h2>
 
               {earningsComments.length > 0 ? (
-                <div>
-                  <div className="space-y-3">
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs text-gray-500">
+                      Showing {earningsPage * ITEMS_PER_PAGE + 1}-
+                      {Math.min(
+                        (earningsPage + 1) * ITEMS_PER_PAGE,
+                        totalEarnings
+                      )}{" "}
+                      of {totalEarnings}
+                    </p>
+                  </div>
+                  <div className="space-y-2 overflow-y-auto flex-1">
                     {earningsComments.map((comment) => (
                       <Link
                         key={comment.question_id}
                         href={`/analyst/${unwrappedParams.id}/earnings`}
-                        className="block p-4 bg-gray-50 hover:bg-indigo-50 rounded-lg transition-colors border border-gray-200 hover:border-indigo-300"
+                        className="block p-3 bg-gray-50 hover:bg-indigo-50 rounded-lg transition-colors border border-gray-200 hover:border-indigo-300"
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <span className="font-medium text-gray-800">
+                          <span className="font-bold text-gray-800">
                             {comment.ticker}
                           </span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-xs text-gray-500">
                             {comment.mostimportantdateutc
                               ? new Date(
                                   comment.mostimportantdateutc
@@ -529,7 +578,7 @@ export default function AnalystDashboard({
                               : "N/A"}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2">
+                        <p className="text-xs text-gray-600 line-clamp-3">
                           {comment.componenttextpreview}
                         </p>
                         {comment.word_count && (
@@ -542,17 +591,17 @@ export default function AnalystDashboard({
                   </div>
 
                   {/* Pagination Controls */}
-                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 flex-shrink-0">
                     <button
                       onClick={() =>
                         setEarningsPage(Math.max(0, earningsPage - 1))
                       }
                       disabled={earningsPage === 0}
-                      className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:cursor-not-allowed"
                     >
                       ← Previous
                     </button>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xs text-gray-600">
                       Page {earningsPage + 1} of{" "}
                       {Math.ceil(totalEarnings / ITEMS_PER_PAGE)}
                     </span>
@@ -561,7 +610,7 @@ export default function AnalystDashboard({
                       disabled={
                         (earningsPage + 1) * ITEMS_PER_PAGE >= totalEarnings
                       }
-                      className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:cursor-not-allowed"
                     >
                       Next →
                     </button>
