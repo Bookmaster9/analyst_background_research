@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   supabase,
@@ -11,9 +11,70 @@ import {
 } from "@/lib/supabase";
 import Link from "next/link";
 
+declare global {
+  interface Window {
+    TradingView: any;
+  }
+}
+
 interface PredictionWithPrice extends Prediction {
   start_price?: number;
   end_price?: number;
+}
+
+// TradingView Chart Component
+function TradingViewChart({ prediction }: { prediction: PredictionWithPrice }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Load TradingView script
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/tv.js';
+    script.async = true;
+    script.onload = () => {
+      if (containerRef.current && window.TradingView) {
+        // Calculate date range
+        const predDate = prediction.anndats ? new Date(prediction.anndats) : new Date();
+        const startDate = new Date(predDate);
+        startDate.setMonth(startDate.getMonth() - 1);
+        const endDate = new Date(predDate);
+        endDate.setFullYear(endDate.getFullYear() + 1);
+
+        // Create widget
+        new window.TradingView.widget({
+          autosize: true,
+          symbol: prediction.ticker,
+          interval: 'D',
+          timezone: 'Etc/UTC',
+          theme: 'light',
+          style: '1',
+          locale: 'en',
+          toolbar_bg: '#f1f3f6',
+          enable_publishing: false,
+          hide_side_toolbar: false,
+          allow_symbol_change: true,
+          container_id: containerRef.current.id,
+          range: '60M', // Show 5 years of data
+        });
+      }
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, [prediction]);
+
+  return (
+    <div
+      ref={containerRef}
+      id={`tradingview-${prediction.prediction_id}`}
+      className="w-full h-full"
+    />
+  );
 }
 
 export default function AnalystDashboard({
@@ -808,7 +869,7 @@ export default function AnalystDashboard({
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-sm text-gray-600">Date</p>
                   <p className="font-semibold text-gray-800">
@@ -841,16 +902,51 @@ export default function AnalystDashboard({
                       : "N/A"}
                   </p>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-600">Forecast Duration</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedPrediction.horizon ? `${selectedPrediction.horizon} months` : "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Return</p>
+                  <p className={`font-semibold ${
+                    (() => {
+                      const returnPct =
+                        selectedPrediction.start_price && selectedPrediction.end_price && selectedPrediction.value
+                          ? selectedPrediction.value > selectedPrediction.start_price
+                            ? ((selectedPrediction.end_price - selectedPrediction.start_price) /
+                                selectedPrediction.start_price) *
+                              100
+                            : ((selectedPrediction.start_price - selectedPrediction.end_price) /
+                                selectedPrediction.start_price) *
+                              100
+                          : null;
+                      return returnPct !== null && returnPct >= 0 ? "text-green-600" : "text-red-600";
+                    })()
+                  }`}>
+                    {(() => {
+                      const returnPct =
+                        selectedPrediction.start_price && selectedPrediction.end_price && selectedPrediction.value
+                          ? selectedPrediction.value > selectedPrediction.start_price
+                            ? ((selectedPrediction.end_price - selectedPrediction.start_price) /
+                                selectedPrediction.start_price) *
+                              100
+                            : ((selectedPrediction.start_price - selectedPrediction.end_price) /
+                                selectedPrediction.start_price) *
+                              100
+                          : null;
+                      return returnPct !== null
+                        ? `${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(1)}%`
+                        : "N/A";
+                    })()}
+                  </p>
+                </div>
               </div>
 
               {/* TradingView Widget */}
-              <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
-                <iframe
-                  src={`https://www.tradingview.com/widgetembed/?symbol=${selectedPrediction.ticker}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=light&style=1&timezone=Etc%2FUTC&withdateranges=1&hideideas=1&studies_overrides={}`}
-                  className="w-full h-full rounded-lg"
-                  style={{ border: 0 }}
-                  allow="fullscreen"
-                />
+              <div className="w-full h-96 bg-gray-100 rounded-lg overflow-hidden">
+                <TradingViewChart prediction={selectedPrediction} />
               </div>
             </div>
           </div>
