@@ -17,11 +17,13 @@ export default function Home() {
   }, []);
 
   const fetchExampleAnalysts = async () => {
+    // Fetch specific analysts that we know have predictions
     const { data, error } = await supabase
       .from('analysts')
       .select('*')
-      .limit(5);
+      .in('analyst_id', [659, 592, 725, 871, 178]);
 
+    console.log('Fetched analysts:', data, 'Error:', error);
     if (data && !error) {
       setExampleAnalysts(data);
     }
