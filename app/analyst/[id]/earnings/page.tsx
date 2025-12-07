@@ -181,8 +181,8 @@ export default function EarningsPage({ params }: { params: Promise<{ id: string 
           </div>
 
           {/* Right Side - Chatbot */}
-          <div className="bg-white rounded-lg shadow-lg flex flex-col">
-            <div className="p-6 border-b border-gray-200">
+          <div className="bg-white rounded-lg shadow-lg flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-gray-200 flex-shrink-0">
               <h2 className="text-2xl font-semibold text-gray-800">AI Insights Assistant</h2>
               <p className="text-gray-600 text-sm mt-1">
                 Ask me anything about {analyst?.full_name}'s earnings call commentary
@@ -190,7 +190,7 @@ export default function EarningsPage({ params }: { params: Promise<{ id: string 
             </div>
 
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
               {chatMessages.length === 0 && (
                 <div className="text-center text-gray-500 py-8">
                   <p className="mb-4">Start by asking a question, for example:</p>
@@ -235,7 +235,7 @@ export default function EarningsPage({ params }: { params: Promise<{ id: string 
             </div>
 
             {/* Chat Input */}
-            <div className="p-6 border-t border-gray-200">
+            <div className="p-6 border-t border-gray-200 flex-shrink-0">
               <div className="flex gap-2">
                 <input
                   type="text"
