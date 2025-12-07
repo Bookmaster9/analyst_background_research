@@ -36,6 +36,8 @@ export default function AnalystDashboard({
   const [earningsPage, setEarningsPage] = useState(0);
   const [totalPredictions, setTotalPredictions] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
+  const [analystInsights, setAnalystInsights] = useState<any>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
@@ -49,6 +51,10 @@ export default function AnalystDashboard({
   useEffect(() => {
     fetchEarnings();
   }, [earningsPage, unwrappedParams.id]);
+
+  useEffect(() => {
+    fetchAnalystInsights();
+  }, [unwrappedParams.id]);
 
   const fetchAnalystData = async () => {
     setLoading(true);
@@ -178,6 +184,46 @@ export default function AnalystDashboard({
 
     if (earningsData) {
       setEarningsComments(earningsData);
+    }
+  };
+
+  const fetchAnalystInsights = async () => {
+    const analystId = parseInt(unwrappedParams.id);
+    setInsightsLoading(true);
+
+    try {
+      // Fetch all earnings questions for this analyst (limit to 50 for API)
+      const { data: allQuestions } = await supabase
+        .from("earnings_questions")
+        .select("componenttextpreview, full_name")
+        .eq("analyst_id", analystId)
+        .limit(50);
+
+      if (!allQuestions || allQuestions.length === 0) {
+        setInsightsLoading(false);
+        return;
+      }
+
+      // Call our API route to get OpenAI analysis
+      const response = await fetch("/api/analyze-analyst", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          questions: allQuestions.map((q) => q.componenttextpreview),
+          analystName: allQuestions[0].full_name,
+        }),
+      });
+
+      if (response.ok) {
+        const insights = await response.json();
+        setAnalystInsights(insights);
+      }
+    } catch (error) {
+      console.error("Error fetching analyst insights:", error);
+    } finally {
+      setInsightsLoading(false);
     }
   };
 
@@ -365,6 +411,104 @@ export default function AnalystDashboard({
                         </p>
                         <p className="text-xs text-gray-600">Connections</p>
                       </div>
+                    )}
+                  </div>
+
+                  {/* AI Insights Section */}
+                  <div className="pt-3 border-t border-gray-200">
+                    <h3 className="font-semibold text-gray-700 mb-2 text-sm">
+                      AI Analysis
+                    </h3>
+                    {insightsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-2"></div>
+                          <p className="text-xs text-gray-500">
+                            Loading additional metrics...
+                          </p>
+                        </div>
+                      </div>
+                    ) : analystInsights ? (
+                      <div className="space-y-2">
+                        <div className="bg-indigo-50 rounded p-2">
+                          <p className="text-xs font-semibold text-indigo-900">
+                            Style: {analystInsights.overall_style_label}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            Based on {analystInsights.num_questions} questions
+                          </p>
+                        </div>
+
+                        {/* Key Strengths */}
+                        {analystInsights.key_strengths && analystInsights.key_strengths.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-green-700 mb-1">
+                              Strengths:
+                            </p>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              {analystInsights.key_strengths.map((strength: string, idx: number) => (
+                                <li key={idx} className="flex items-start">
+                                  <span className="text-green-600 mr-1">•</span>
+                                  <span>{strength}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Key Weaknesses */}
+                        {analystInsights.key_weaknesses && analystInsights.key_weaknesses.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-orange-700 mb-1">
+                              Weaknesses:
+                            </p>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              {analystInsights.key_weaknesses.map((weakness: string, idx: number) => (
+                                <li key={idx} className="flex items-start">
+                                  <span className="text-orange-600 mr-1">•</span>
+                                  <span>{weakness}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Top Scores */}
+                        {analystInsights.scores && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-700 mb-1">
+                              Top Dimensions:
+                            </p>
+                            <div className="space-y-1">
+                              {Object.entries(analystInsights.scores)
+                                .sort((a: any, b: any) => b[1].score - a[1].score)
+                                .slice(0, 3)
+                                .map(([key, value]: [string, any]) => (
+                                  <div key={key} className="flex items-center justify-between">
+                                    <span className="text-xs text-gray-600 capitalize">
+                                      {key.replace(/_/g, " ")}
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                        <div
+                                          className="h-full bg-indigo-500"
+                                          style={{ width: `${(value.score / 5) * 100}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 w-6">
+                                        {value.score}/5
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">
+                        No insights available
+                      </p>
                     )}
                   </div>
                 </div>
