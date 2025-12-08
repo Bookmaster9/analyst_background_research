@@ -71,3 +71,13 @@ export interface SecurityPrice {
   conm: string;
   prc: number;
 }
+
+export interface BaseballCard {
+  analyst_id: number;
+  full_name: string;
+  Linkedin: string;
+  At_Bats: number;
+  Batting_Avg: number;
+  Slugging_Pct: number;
+  Specificity_Score: number;
+}

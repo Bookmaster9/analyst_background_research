@@ -8,6 +8,7 @@ import {
   type LinkedInInfo,
   type Prediction,
   type EarningsQuestion,
+  type BaseballCard,
 } from "@/lib/supabase";
 import Link from "next/link";
 
@@ -91,6 +92,7 @@ export default function AnalystDashboard({
   const unwrappedParams = use(params);
   const [analyst, setAnalyst] = useState<Analyst | null>(null);
   const [linkedInInfo, setLinkedInInfo] = useState<LinkedInInfo | null>(null);
+  const [baseballCard, setBaseballCard] = useState<BaseballCard | null>(null);
   const [predictions, setPredictions] = useState<PredictionWithPrice[]>([]);
   const [earningsComments, setEarningsComments] = useState<EarningsQuestion[]>(
     []
@@ -238,6 +240,18 @@ export default function AnalystDashboard({
       setLinkedInInfo(linkedInData);
     }
 
+    // Fetch Baseball Card data
+    const { data: baseballCardData, error: baseballCardError } = await supabase
+      .from("baseball_card")
+      .select("*")
+      .eq("analyst_id", analystId)
+      .maybeSingle();
+
+    console.log("Baseball card data:", baseballCardData, "Error:", baseballCardError);
+    if (baseballCardData) {
+      setBaseballCard(baseballCardData);
+    }
+
     setLoading(false);
   };
 
@@ -350,6 +364,7 @@ export default function AnalystDashboard({
         .from("earnings_questions")
         .select("componenttextpreview, full_name")
         .eq("analyst_id", analystId)
+        .order("mostimportantdateutc", { ascending: false })
         .limit(50);
 
       if (!allQuestions || allQuestions.length === 0) {
@@ -567,6 +582,115 @@ export default function AnalystDashboard({
                     )}
                   </div>
 
+                  {/* Baseball Card Statistics */}
+                  {baseballCard && (
+                    <div className="pt-3 border-t border-gray-200">
+                      <h3 className="font-semibold text-gray-700 mb-2 text-sm">
+                        Performance Metrics
+                      </h3>
+                      <div className="space-y-2">
+                        {/* Batting Average */}
+                        {baseballCard.Batting_Avg !== null && baseballCard.Batting_Avg !== undefined && (
+                          <div className="flex items-center justify-between bg-blue-50 rounded p-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium text-gray-700">
+                                Batting Avg
+                              </span>
+                              <div className="group relative">
+                                <svg
+                                  className="w-3 h-3 text-gray-400 cursor-help"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                <div className="absolute left-0 bottom-full mb-2 w-48 bg-gray-900 text-white text-xs rounded py-2 px-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10 pointer-events-none">
+                                  How often the analyst gets the direction of stock move correct
+                                  <div className="absolute top-full left-4 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                                </div>
+                              </div>
+                            </div>
+                            <span className="text-lg font-bold text-blue-700">
+                              {(baseballCard.Batting_Avg * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Slugging Percentage */}
+                        {baseballCard.Slugging_Pct !== null && baseballCard.Slugging_Pct !== undefined && (
+                          <div className="flex items-center justify-between bg-green-50 rounded p-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium text-gray-700">
+                                Slugging %
+                              </span>
+                              <div className="group relative">
+                                <svg
+                                  className="w-3 h-3 text-gray-400 cursor-help"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                <div className="absolute left-0 bottom-full mb-2 w-48 bg-gray-900 text-white text-xs rounded py-2 px-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10 pointer-events-none">
+                                  How big the returns are when they hit
+                                  <div className="absolute top-full left-4 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                                </div>
+                              </div>
+                            </div>
+                            <span className="text-lg font-bold text-green-700">
+                              {(baseballCard.Slugging_Pct * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Specificity Score */}
+                        {baseballCard.Specificity_Score !== null && baseballCard.Specificity_Score !== undefined && (
+                          <div className="flex items-center justify-between bg-purple-50 rounded p-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium text-gray-700">
+                                Specificity
+                              </span>
+                              <div className="group relative">
+                                <svg
+                                  className="w-3 h-3 text-gray-400 cursor-help"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                <div className="absolute left-0 bottom-full mb-2 w-48 bg-gray-900 text-white text-xs rounded py-2 px-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10 pointer-events-none">
+                                  NLP score for how data heavy their questions are - measures how many numbers were in the earnings call questions
+                                  <div className="absolute top-full left-4 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                                </div>
+                              </div>
+                            </div>
+                            <span className="text-lg font-bold text-purple-700">
+                              {baseballCard.Specificity_Score.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* AI Insights Section */}
                   <div className="pt-3 border-t border-gray-200">
                     <h3 className="font-semibold text-gray-700 mb-2 text-sm">
@@ -626,37 +750,192 @@ export default function AnalystDashboard({
                           </div>
                         )}
 
-                        {/* Top Scores */}
-                        {analystInsights.scores && (
-                          <div>
-                            <p className="text-xs font-semibold text-gray-700 mb-1">
-                              Top Dimensions:
-                            </p>
-                            <div className="space-y-1">
-                              {Object.entries(analystInsights.scores)
-                                .sort((a: any, b: any) => b[1].score - a[1].score)
-                                .slice(0, 3)
-                                .map(([key, value]: [string, any]) => (
-                                  <div key={key} className="flex items-center justify-between">
-                                    <span className="text-xs text-gray-600 capitalize">
-                                      {key.replace(/_/g, " ")}
-                                    </span>
-                                    <div className="flex items-center gap-1">
-                                      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                        <div
-                                          className="h-full bg-indigo-500"
-                                          style={{ width: `${(value.score / 5) * 100}%` }}
-                                        />
-                                      </div>
-                                      <span className="text-xs font-semibold text-gray-700 w-6">
-                                        {value.score}/5
-                                      </span>
-                                    </div>
+                        {/* All Dimensions by Category */}
+                        {analystInsights.scores && (() => {
+                          const getScoreColor = (score: number) => {
+                            if (score >= 4.5) return 'rgb(34, 197, 94)'; // green-500
+                            if (score >= 3.5) return 'rgb(132, 204, 22)'; // lime-500
+                            if (score >= 2.5) return 'rgb(234, 179, 8)'; // yellow-500
+                            if (score >= 1.5) return 'rgb(249, 115, 22)'; // orange-500
+                            return 'rgb(239, 68, 68)'; // red-500
+                          };
+
+                          // Dimension descriptions
+                          const dimensionDescriptions: Record<string, string> = {
+                            'politeness_respect': 'Tone, courtesy, respect toward management and other participants.',
+                            'aggressiveness_pressure': 'How forcefully or persistently they push for answers, challenge management.',
+                            'analytical_depth': 'Overall intellectual rigor, sophistication of thinking, logical structure.',
+                            'preparation_company_knowledge': 'Evidence of research, understanding of company specifics, filings, history.',
+                            'clarity_structure': 'How clearly and logically the questions are formulated and organized.',
+                            'constructiveness': 'Whether questions are productive vs confrontational, helpful vs nitpicking.',
+                            'accounting_skepticism': 'Probing on accounting quality, KPIs, margins, working capital, adjustments.',
+                            'guidance_interrogation': 'How well they drill into forward guidance, embedded assumptions, bridges.',
+                            'risk_focus': 'Attention to demand risk, execution risk, regulatory risk, supply chain, macro.',
+                            'capital_allocation_focus': 'Depth of questions on capex, leverage, buybacks, dividends, ROIC, M&A.',
+                            'industry_contextualization': 'References to peers, competitive dynamics, regulatory environment, global macro.',
+                            'model_rigorousness': 'Use of numbers, deltas, decomposition, margin math, sensitivity analysis.',
+                            'quantitative_precision': 'Use of specific numbers, percentages, basis points, and precise financial metrics in questions.',
+                            'temporal_specificity': 'References to specific timeframes, quarters, dates, sequential trends, and forward-looking periods.',
+                            'segment_granularity': 'Depth in asking about specific product lines, geographies, customer segments, or business units.',
+                            'metric_decomposition': 'Breaking down high-level metrics into components (revenue = price × volume, margin drivers, etc.).',
+                            'comparative_benchmarking': 'Using specific peer comparisons, market share data, historical trends, or industry benchmarks.'
+                          };
+
+                          const generalDimensions = [
+                            'politeness_respect',
+                            'aggressiveness_pressure',
+                            'analytical_depth',
+                            'preparation_company_knowledge',
+                            'clarity_structure',
+                            'constructiveness'
+                          ];
+
+                          const financeSpecificDimensions = [
+                            'accounting_skepticism',
+                            'guidance_interrogation',
+                            'risk_focus',
+                            'capital_allocation_focus',
+                            'industry_contextualization',
+                            'model_rigorousness'
+                          ];
+
+                          const specificityDimensions = [
+                            'quantitative_precision',
+                            'temporal_specificity',
+                            'segment_granularity',
+                            'metric_decomposition',
+                            'comparative_benchmarking'
+                          ];
+
+                          // Calculate overall average score
+                          const allScores = Object.values(analystInsights.scores).map((v: any) => v.score);
+                          const averageScore = allScores.reduce((a: number, b: number) => a + b, 0) / allScores.length;
+
+                          const renderDimension = ([key, value]: [string, any]) => (
+                            <div key={key} className="flex items-center justify-between">
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-gray-600 capitalize">
+                                  {key.replace(/_/g, " ")}
+                                </span>
+                                <div className="group relative">
+                                  <svg
+                                    className="w-3 h-3 text-gray-400 cursor-help"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                  <div className="absolute left-0 bottom-full mb-2 w-56 bg-gray-900 text-white text-xs rounded py-2 px-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10 pointer-events-none">
+                                    {dimensionDescriptions[key]}
+                                    <div className="absolute top-full left-4 -mt-1 border-4 border-transparent border-t-gray-900"></div>
                                   </div>
-                                ))}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full transition-all"
+                                    style={{
+                                      width: `${(value.score / 5) * 100}%`,
+                                      backgroundColor: getScoreColor(value.score)
+                                    }}
+                                  />
+                                </div>
+                                <span className="text-xs font-semibold text-gray-700 w-6">
+                                  {value.score}/5
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+
+                          return (
+                            <div className="space-y-3">
+                              {/* Overall Rating with Stars */}
+                              <div className="bg-indigo-50 rounded-lg p-3 mb-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-semibold text-gray-700">Overall Score</span>
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-0.5">
+                                      {[1, 2, 3, 4, 5].map((star) => {
+                                        const fillPercentage = Math.max(0, Math.min(100, (averageScore - (star - 1)) * 100));
+                                        return (
+                                          <div key={star} className="relative w-4 h-4">
+                                            {/* Empty star */}
+                                            <svg
+                                              className="absolute inset-0 w-4 h-4 text-gray-300"
+                                              fill="currentColor"
+                                              viewBox="0 0 20 20"
+                                            >
+                                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            {/* Filled star with gradient */}
+                                            <div
+                                              className="absolute inset-0 overflow-hidden"
+                                              style={{ width: `${fillPercentage}%` }}
+                                            >
+                                              <svg
+                                                className="w-4 h-4"
+                                                fill={getScoreColor(averageScore)}
+                                                viewBox="0 0 20 20"
+                                              >
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                              </svg>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-700">
+                                      {averageScore.toFixed(2)}/5
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* General Dimensions */}
+                              <div>
+                                <p className="text-xs font-semibold text-gray-700 mb-1">
+                                  General Behavioral:
+                                </p>
+                                <div className="space-y-1">
+                                  {generalDimensions
+                                    .filter(key => analystInsights.scores[key])
+                                    .map(key => renderDimension([key, analystInsights.scores[key]]))}
+                                </div>
+                              </div>
+
+                              {/* Finance-Specific Dimensions */}
+                              <div>
+                                <p className="text-xs font-semibold text-gray-700 mb-1">
+                                  Finance-Specific:
+                                </p>
+                                <div className="space-y-1">
+                                  {financeSpecificDimensions
+                                    .filter(key => analystInsights.scores[key])
+                                    .map(key => renderDimension([key, analystInsights.scores[key]]))}
+                                </div>
+                              </div>
+
+                              {/* Specificity Dimensions */}
+                              <div>
+                                <p className="text-xs font-semibold text-gray-700 mb-1">
+                                  Specificity:
+                                </p>
+                                <div className="space-y-1">
+                                  {specificityDimensions
+                                    .filter(key => analystInsights.scores[key])
+                                    .map(key => renderDimension([key, analystInsights.scores[key]]))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <p className="text-xs text-gray-500">

@@ -18,18 +18,31 @@ export async function POST(request: Request) {
 
     const prompt = `You are evaluating the style and skill of an equity research analyst based ONLY on the questions they ask on earnings calls.
 
-You will be given one or more questions asked by a single analyst. Ignore management answers. Rate the analyst along general behavioral dimensions AND finance-specific analytical dimensions.
+You will be given one or more questions asked by a single analyst. Rate the analyst along ALL dimensions below: general behavioral, finance-specific analytical, AND specificity dimensions.
+
+IMPORTANT: You MUST score ALL 17 dimensions listed below. Do not skip any dimension. Be harsh on this rating and only give good scores for analysts that are exception in the dimension.
 
 Return ONLY valid JSON following the schema at the end.
 
-## GENERAL DIMENSIONS (1–5)
+## GENERAL BEHAVIORAL DIMENSIONS (1–5)
 
 1. politeness_respect
+   - Tone, courtesy, respect toward management and other participants.
+
 2. aggressiveness_pressure
+   - How forcefully or persistently they push for answers, challenge management.
+
 3. analytical_depth
+   - Overall intellectual rigor, sophistication of thinking, logical structure.
+
 4. preparation_company_knowledge
+   - Evidence of research, understanding of company specifics, filings, history.
+
 5. clarity_structure
+   - How clearly and logically the questions are formulated and organized.
+
 6. constructiveness
+   - Whether questions are productive vs confrontational, helpful vs nitpicking.
 
 ## FINANCE-SPECIFIC DIMENSIONS (1–5)
 
@@ -51,10 +64,27 @@ Return ONLY valid JSON following the schema at the end.
 12. model_rigorousness
    - Use of numbers, deltas, decomposition, margin math, sensitivity analysis.
 
-For each dimension:
-- Score 1–5
-- 1–3 sentence explanation
-- 1–3 short evidence snippets
+## SPECIFICITY DIMENSIONS (1–5)
+
+13. quantitative_precision
+   - Use of specific numbers, percentages, basis points, and precise financial metrics in questions.
+
+14. temporal_specificity
+   - References to specific timeframes, quarters, dates, sequential trends, and forward-looking periods.
+
+15. segment_granularity
+   - Depth in asking about specific product lines, geographies, customer segments, or business units.
+
+16. metric_decomposition
+   - Breaking down high-level metrics into components (revenue = price × volume, margin drivers, etc.).
+
+17. comparative_benchmarking
+   - Using specific peer comparisons, market share data, historical trends, or industry benchmarks.
+
+CRITICAL: For EACH of the 17 dimensions above (6 general + 6 finance + 5 specificity):
+- Assign a score from 1–5 (REQUIRED - no dimension can be skipped)
+- Provide 1–3 sentence explanation
+- Include 1–3 short evidence snippets from the questions
 
 ## ADDITIONAL LABELS
 - overall_style_label (short tag: e.g., "analytical-and-tough", "polite-and-generic")
@@ -79,7 +109,12 @@ For each dimension:
     "risk_focus": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]},
     "capital_allocation_focus": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]},
     "industry_contextualization": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]},
-    "model_rigorousness": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]}
+    "model_rigorousness": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]},
+    "quantitative_precision": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]},
+    "temporal_specificity": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]},
+    "segment_granularity": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]},
+    "metric_decomposition": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]},
+    "comparative_benchmarking": {"score": <int>, "explanation": "<string>", "evidence": ["<string>", ...]}
   },
   "overall_style_label": "<string>",
   "key_strengths": ["<string>", "..."],
@@ -92,7 +127,9 @@ For each dimension:
 
 Here are the analyst's questions:
 
-${questions.map((q: string, i: number) => `Question ${i + 1}: ${q}`).join("\n\n")}`;
+${questions
+  .map((q: string, i: number) => `Question ${i + 1}: ${q}`)
+  .join("\n\n")}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -100,7 +137,7 @@ ${questions.map((q: string, i: number) => `Question ${i + 1}: ${q}`).join("\n\n"
         {
           role: "system",
           content:
-            "You are an expert at evaluating equity research analysts. Return only valid JSON.",
+            "You are an expert at evaluating equity research analysts. Return only valid JSON. CRITICAL: You must score ALL 17 dimensions without exception: 6 general behavioral, 6 finance-specific, and 5 specificity dimensions. Every dimension in the schema must have a score.",
         },
         {
           role: "user",
