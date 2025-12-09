@@ -4,17 +4,47 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, type Analyst } from '@/lib/supabase';
 
+const features = [
+  {
+    image: '/earnings-commentary-example.png',
+    alt: 'Earnings Commentary AI Chat',
+    title: 'AI-Powered Commentary Analysis',
+    description: 'Chat with an AI trained on all of an analyst\'s earnings call questions to understand their analytical style and focus areas.'
+  },
+  {
+    image: '/earnings-ratings.png',
+    alt: 'Analyst Performance Ratings',
+    title: 'Comprehensive Performance Ratings',
+    description: 'See detailed breakdowns across 17 dimensions including analytical depth, accounting skepticism, and quantitative precision.'
+  },
+  {
+    image: '/forecast-example.png',
+    alt: 'Stock Price Forecast Visualization',
+    title: 'Interactive Forecast Tracking',
+    description: 'View analyst price targets overlaid on TradingView charts to track prediction accuracy and investment performance.'
+  }
+];
+
 export default function Home() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState<Analyst[]>([]);
   const [exampleAnalysts, setExampleAnalysts] = useState<Analyst[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeFeature, setActiveFeature] = useState(0);
 
   // Fetch example analysts on component mount
   useEffect(() => {
     fetchExampleAnalysts();
   }, []);
+
+  // Auto-rotate features
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveFeature((prev) => (prev + 1) % features.length);
+    }, 5000); // Rotate every 5 seconds
+    return () => clearInterval(interval);
+  }, [activeFeature]); // Reset interval when activeFeature changes
 
   const fetchExampleAnalysts = async () => {
     // Fetch random analysts
@@ -168,6 +198,105 @@ export default function Home() {
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
                   </div>
                 )}
+              </div>
+
+              {/* Feature Showcase Carousel */}
+              <div className="mt-16 w-full max-w-4xl mx-auto">
+                <h2 className="text-3xl font-bold text-white mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200">
+                  Platform Features
+                </h2>
+
+                <div className="relative h-[500px] flex items-center justify-center">
+                  {features.map((feature, index) => {
+                    const position = (index - activeFeature + features.length) % features.length;
+                    const isCenter = position === 0;
+                    const isLeft = position === features.length - 1;
+                    const isRight = position === 1;
+                    const isHidden = position > 1 && position < features.length - 1;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`absolute transition-all duration-700 ease-in-out ${
+                          isHidden ? 'opacity-0 pointer-events-none' : ''
+                        } ${
+                          isCenter
+                            ? 'z-20 scale-100 opacity-100'
+                            : 'z-10 scale-75 opacity-60 blur-sm'
+                        }`}
+                        style={{
+                          left: isCenter ? '50%' : isLeft ? '10%' : isRight ? '90%' : '50%',
+                          transform: isCenter
+                            ? 'translateX(-50%)'
+                            : isLeft
+                            ? 'translateX(-50%)'
+                            : isRight
+                            ? 'translateX(-50%)'
+                            : 'translateX(-50%)',
+                          width: isCenter ? '400px' : '240px',
+                          maxWidth: isCenter ? '400px' : '240px',
+                          top: '0'
+                        }}
+                      >
+                        <div
+                          className={`cursor-pointer ${
+                            !isCenter ? 'hover:scale-95 hover:opacity-80 transition-all duration-300' : ''
+                          }`}
+                          onClick={() => {
+                            if (!isCenter) {
+                              setActiveFeature(index);
+                            }
+                          }}
+                        >
+                          <div
+                            className={`relative overflow-hidden rounded-xl shadow-lg transition-all duration-300 ${
+                              isCenter
+                                ? 'hover:shadow-2xl hover:-translate-y-2 hover:brightness-110 hover:ring-2 hover:ring-indigo-400'
+                                : ''
+                            }`}
+                          >
+                            <img
+                              src={feature.image}
+                              alt={feature.alt}
+                              className="w-full transition-transform duration-300"
+                              style={{
+                                height: isCenter ? '300px' : '180px',
+                                objectFit: 'cover',
+                                objectPosition: 'top'
+                              }}
+                            />
+                          </div>
+                          {isCenter && (
+                            <div className="mt-4 text-center px-4">
+                              <h3 className="text-lg font-semibold text-white mb-2">
+                                {feature.title}
+                              </h3>
+                              <p className="text-indigo-200 text-sm">
+                                {feature.description}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Navigation Dots */}
+                <div className="flex justify-center gap-2 mt-4">
+                  {features.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setActiveFeature(index)}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        index === activeFeature
+                          ? 'bg-indigo-400 w-8'
+                          : 'bg-indigo-600/30 hover:bg-indigo-500/50'
+                      }`}
+                      aria-label={`Go to feature ${index + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
